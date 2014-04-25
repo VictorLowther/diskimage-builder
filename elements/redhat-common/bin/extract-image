@@ -3,8 +3,7 @@
 # Intended to be called from the root.d cloud-image script as follows:
 # $TMP_HOOKS_PATH/bin/extract-image $BASE_IMAGE_FILE $BASE_IMAGE_TAR $IMAGE_LOCATION $CACHED_IMAGE
 
-
-set -eu
+set -eux
 
 BASE_IMAGE_FILE=$1
 BASE_IMAGE_TAR=$2
@@ -59,7 +58,11 @@ else
         # NOTE: On F17 (parted-3.0-10.fc17.x86_64), partprobe of
         #       /dev/loop0 does not create /dev/loop0p2, while kpartx at
         #       least creates /dev/mapper/loop0p2.
-        LOOPDEV=$(sudo kpartx -av $WORKING/$RAW_FILE | awk "/loop[0-9]+$MAGIC_BIT/ {print \$3}")
+        LOOPDEV=$(sudo kpartx -asfv $WORKING/$RAW_FILE | awk "/loop[0-9]+$MAGIC_BIT/ {print \$3}")
+        # If running inside Docker, make our nodes manually, because udev will not be working.
+        if [[ -f /.dockerenv ]]; then
+            sudo dmsetup mknodes
+        fi
         if ! timeout 5 sh -c "while ! [ -e /dev/mapper/$LOOPDEV ]; do sleep 1; done"; then
             echo "Error: Could not find /dev/mapper/$LOOPDEV"
             exit 1

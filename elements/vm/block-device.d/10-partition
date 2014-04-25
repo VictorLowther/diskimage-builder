@@ -21,8 +21,12 @@ sudo udevadm settle
 # If the partition isn't under /dev/loop*p1, create it with kpartx
 DM=
 if [ ! -e "${IMAGE_BLOCK_DEVICE}p1" ]; then
-    sudo kpartx -asv $TMP_IMAGE_PATH
+    sudo kpartx -afsv $TMP_IMAGE_PATH
     DM=${IMAGE_BLOCK_DEVICE/#\/dev/\/dev\/mapper}
+    # If running inside Docker, make our nodes manually, because udev will not be working.
+    if [[ -f /.dockerenv ]]; then
+        sudo dmsetup mknodes
+    fi
 fi
 
 if [ -n "$DM" ]; then
